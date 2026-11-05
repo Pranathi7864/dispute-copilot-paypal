@@ -3,10 +3,9 @@
   "version": "1.0.0",
   "description": "It is an AI agent designed to check the disputes in resolution center in the app and perform analysis",
   "main": "server.js",
- 
   "scripts": {
-  "start": "node server.js"
-},
+    "start": "node server.js"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Pranathi7864/dispute-copilot-paypal.git"
@@ -20,9 +19,11 @@
   },
   "homepage": "https://github.com/Pranathi7864/dispute-copilot-paypal#readme",
   "dependencies": {
+    "@google/genai": "^2.32.0",
     "dotenv": "^18.0.9",
     "express": "^5.3.0",
     "express-rate-limit": "^8.7.3",
+    "express-session": "^1.19.0",
     "helmet": "^8.3.0"
   }
 }
