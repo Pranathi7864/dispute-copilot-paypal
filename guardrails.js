@@ -59,4 +59,20 @@ function enforce(raw, ctx) {
   return { ...out, flags, route: out.recommendation === "NEEDS_HUMAN" ? "NEEDS_HUMAN" : "READY_FOR_APPROVAL" };
 }
 
-module.exports = { enforce, proposalHash, unverifiedNumbers };
+// Strict, all-conditions-must-pass check. Anything doubtful stays with the human.
+function autoEligible(proposal, ctx) {
+  return (
+    cfg.AUTO_HANDLE === true &&
+    cfg.AUTO_ACTIONS.includes(proposal.recommendation) &&
+    proposal.route === "READY_FOR_APPROVAL" &&
+    proposal.confidence === "HIGH" &&
+    (proposal.flags || []).length === 0 &&
+    !proposal.edited &&
+    ctx.status === "WAITING_FOR_SELLER_RESPONSE" &&
+    !!ctx.record &&
+    ctx.amount > 0 &&
+    ctx.amount <= cfg.AUTO_HANDLE_MAX_AMOUNT
+  );
+}
+
+module.exports = { enforce, proposalHash, unverifiedNumbers, autoEligible };

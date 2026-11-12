@@ -30,4 +30,8 @@ module.exports = Object.freeze({
   ADMIN_PASSWORD: process.env.ADMIN_PASSWORD,
   SESSION_SECRET: process.env.SESSION_SECRET,
   MAX_AUTO_AMOUNT: Number(process.env.MAX_AUTO_AMOUNT) || 200,
+    AUTO_HANDLE: process.env.AUTO_HANDLE === "true",
+  AUTO_HANDLE_MAX_AMOUNT: Number(process.env.AUTO_HANDLE_MAX_AMOUNT) || 50,
+  AUTO_HANDLE_PER_HOUR: Number(process.env.AUTO_HANDLE_PER_HOUR) || 5,
+  AUTO_ACTIONS: (process.env.AUTO_ACTIONS || "FIGHT").split(",").map((s) => s.trim().toUpperCase()).filter(Boolean),
 });

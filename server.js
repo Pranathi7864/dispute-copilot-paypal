@@ -7,7 +7,7 @@ const agent = require("./agent");
 const actions = require("./actions");
 const auth = require("./auth");
 const { isValidDisputeId, httpError, redact, audit, clean } = require("./security");
-const { proposalHash, unverifiedNumbers } = require("./guardrails");
+const { proposalHash, unverifiedNumbers, autoEligible } = require("./guardrails");
 
 const app = express();
 app.disable("x-powered-by");
@@ -33,7 +33,38 @@ app.param("id", (req, res, next, id) =>
 const proposals = new Map(); // disputeId -> proposal state (in memory)
 const inFlight = new Set();
 const TTL_MS = 30 * 60 * 1000;
-const publicView = (p) => ({ proposal: p.proposal, hash: p.hash, status: p.status, trace: p.trace, expires_at: p.expiresAt });
+
+const publicView = (p) => ({
+  proposal: p.proposal, hash: p.hash, status: p.status, trace: p.trace,
+  expires_at: p.expiresAt, auto: !!p.auto, auto_note: p.autoNote || null,
+});
+
+// hourly cap on automatic actions
+let autoWindow = [];
+const autoBudgetOk = () => {
+  const cutoff = Date.now() - 3600000;
+  autoWindow = autoWindow.filter((t) => t > cutoff);
+  return autoWindow.length < cfg.AUTO_HANDLE_PER_HOUR;
+};
+
+// one shared path for human-approved and automatic submissions
+async function submitToPayPal(id, p, mode) {
+  const live = await paypal.getDispute(id); // re-check right before acting
+  if (live.status !== "WAITING_FOR_SELLER_RESPONSE") {
+    audit("submit_blocked", { id, status: live.status, mode });
+    throw httpError("Dispute is no longer waiting for your response", 409);
+  }
+  p.status = "SUBMITTING"; // blocks double submission
+  try {
+    await actions.execute(id, p);
+    p.status = "DONE";
+    audit(mode === "auto" ? "auto_submitted" : "approved_and_submitted", { id, rec: p.proposal.recommendation });
+  } catch (e) {
+    p.status = "PENDING_APPROVAL";
+    audit("submit_failed", { id, mode });
+    throw e;
+  }
+}
 
 // ---- public ----
 app.get("/api/health", (req, res) => res.json({ ok: true, mock: cfg.MOCK }));
@@ -49,8 +80,12 @@ app.post("/api/disputes/:id/analyze", auth.requireAuth, auth.requireCsrf, analyz
   const id = req.params.id;
   if (!cfg.AGENT_ENABLED) throw httpError("Agent is disabled", 503);
   if (inFlight.has(id)) throw httpError("Analysis already running", 409);
+
   const existing = proposals.get(id);
-  if (existing && ["SUBMITTING", "DONE"].includes(existing.status)) throw httpError(`Dispute already ${existing.status}`, 409);
+  if (existing && ["SUBMITTING", "DONE"].includes(existing.status)) {
+    throw httpError(`Dispute already ${existing.status}`, 409);
+  }
+  // cache: reuse a still-valid pending proposal instead of calling the AI again
   if (existing && existing.status === "PENDING_APPROVAL" && Date.now() < existing.expiresAt && req.body?.force !== true) {
     return res.json(publicView(existing));
   }
@@ -66,8 +101,23 @@ app.post("/api/disputes/:id/analyze", auth.requireAuth, auth.requireCsrf, analyz
     };
     proposals.set(id, p);
     audit("analyzed", { id, rec: proposal.recommendation, flags: proposal.flags });
+
+    // optional auto-handling: every strict condition must pass, otherwise a human decides
+    if (autoEligible(proposal, ctx) && autoBudgetOk()) {
+      try {
+        autoWindow.push(Date.now());
+        await submitToPayPal(id, p, "auto");
+        p.auto = true;
+        p.autoNote = "Handled automatically: low value, high confidence, no safety flags.";
+      } catch (e) {
+        p.autoNote = "Automatic handling failed, so this needs your approval.";
+        audit("auto_failed", { id });
+      }
+    }
     res.json(publicView(p));
-  } finally { inFlight.delete(id); }
+  } finally {
+    inFlight.delete(id);
+  }
 }));
 
 app.get("/api/disputes/:id/proposal", auth.requireAuth, (req, res) => {
@@ -100,22 +150,7 @@ app.post("/api/disputes/:id/approve", auth.requireAuth, auth.requireCsrf, wrap(a
   if (req.body?.proposal_hash !== p.hash) throw httpError("Proposal changed, review again", 409);
   if (p.proposal.recommendation === "NEEDS_HUMAN") throw httpError("This case needs a human decision", 400);
 
-  const live = await paypal.getDispute(id); // re-check right before acting
-  if (live.status !== "WAITING_FOR_SELLER_RESPONSE") {
-    audit("approve_blocked", { id, status: live.status });
-    throw httpError("Dispute is no longer waiting for your response", 409);
-  }
-
-  p.status = "SUBMITTING"; // blocks double submission
-  try {
-    await actions.execute(id, p);
-    p.status = "DONE";
-    audit("approved_and_submitted", { id, rec: p.proposal.recommendation });
-  } catch (e) {
-    p.status = "PENDING_APPROVAL";
-    audit("submit_failed", { id });
-    throw e;
-  }
+  await submitToPayPal(id, p, "human");
   res.json({ status: p.status });
 }));
 
@@ -136,9 +171,3 @@ app.use((err, req, res, next) => {
 });
 
 app.listen(cfg.PORT, () => console.log(`Dispute Copilot on http://localhost:${cfg.PORT} (mock=${cfg.MOCK}, agent=${cfg.AGENT_ENABLED})`));
-
-
-
-
-
-

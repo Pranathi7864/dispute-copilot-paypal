@@ -173,7 +173,7 @@
     $("note").disabled = !(pending && fight);
     $("buyerMsg").disabled = !(pending && fight);
 
-    $("statusText").textContent = STATUS[current.status] || current.status;
+    $("statusText").textContent =(STATUS[current.status] || current.status) + (current.auto_note ? " - " + current.auto_note : "");
     $("traceText").textContent =
       `Agent steps: ${(current.trace || []).join(" > ")}. Expires: ${when(current.expires_at)}`;
 
