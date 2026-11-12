@@ -1,0 +1,29 @@
+{
+  "MOCK-TXN-1001": {
+    "item": "Handmade leather bag",
+    "shipped_on": "2026-10-22",
+    "carrier": "FEDEX",
+    "tracking_number": "122533485",
+    "delivery_status": "DELIVERED",
+    "delivered_on": "2026-10-29",
+    "seller_notes": "Delivered and signed for at the order address."
+  },
+  "MOCK-TXN-1002": {
+    "item": "Canvas tote",
+    "shipped_on": null,
+    "carrier": null,
+    "tracking_number": null,
+    "delivery_status": "NOT_SHIPPED",
+    "delivered_on": null,
+    "seller_notes": "Item was out of stock and never shipped."
+  },
+  "MOCK-TXN-1003": {
+    "item": "Leather jacket",
+    "shipped_on": "2026-10-25",
+    "carrier": "DHL",
+    "tracking_number": "778899001",
+    "delivery_status": "DELIVERED",
+    "delivered_on": "2026-11-01",
+    "seller_notes": "Listing described the item as dark brown; buyer says it looks black."
+  }
+}
