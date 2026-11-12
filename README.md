@@ -2,7 +2,7 @@
 
 An AI agent that helps small online sellers respond to PayPal disputes, with a human approving every money action.
 
-**Demo video:** <YOUTUBE_URL>
+**Demo video:** https://youtu.be/7QTsl7OpM8w?si=c6x_b33wTuYRi8BG
 
 ## The problem
 
