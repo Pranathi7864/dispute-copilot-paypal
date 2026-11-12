@@ -12,7 +12,12 @@ const { proposalHash, unverifiedNumbers } = require("./guardrails");
 const app = express();
 app.disable("x-powered-by");
 if (cfg.PROD) app.set("trust proxy", 1);
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: {
+    useDefaults: true,
+    directives: { "upgrade-insecure-requests": cfg.PROD ? [] : null },
+  },
+}));
 app.use(express.json({ limit: "10kb" }));
 app.use(auth.sessionMiddleware);
 app.use("/api", rateLimit({ windowMs: 60_000, max: 60, standardHeaders: true, legacyHeaders: false }));
@@ -46,6 +51,9 @@ app.post("/api/disputes/:id/analyze", auth.requireAuth, auth.requireCsrf, analyz
   if (inFlight.has(id)) throw httpError("Analysis already running", 409);
   const existing = proposals.get(id);
   if (existing && ["SUBMITTING", "DONE"].includes(existing.status)) throw httpError(`Dispute already ${existing.status}`, 409);
+  if (existing && existing.status === "PENDING_APPROVAL" && Date.now() < existing.expiresAt && req.body?.force !== true) {
+    return res.json(publicView(existing));
+  }
 
   inFlight.add(id);
   try {

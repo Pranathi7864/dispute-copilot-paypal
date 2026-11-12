@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dispute Copilot</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header class="top">
+    <h1>Dispute Copilot</h1>
+    <span id="modeBadge" class="pill"></span>
+    <button id="logoutBtn" class="ghost hidden">Log out</button>
+  </header>
+
+  <main>
+    <section id="loginView" class="card narrow hidden">
+      <h2>Seller login</h2>
+      <label for="password">Password</label>
+      <input id="password" type="password" autocomplete="current-password" maxlength="200">
+      <button id="loginBtn">Log in</button>
+      <p id="loginMsg" class="msg error"></p>
+    </section>
+
+    <section id="appView" class="hidden">
+      <p id="msg" class="msg"></p>
+      <div class="grid">
+        <div class="card">
+          <h2>Disputes</h2>
+          <div id="disputeList"></div>
+        </div>
+
+        <div>
+          <div id="detailCard" class="card hidden">
+            <h2>Dispute details</h2>
+            <div id="detail"></div>
+            <div class="actions">
+              <button id="analyzeBtn">Analyze with AI agent</button>
+            </div>
+          </div>
+
+          <div id="proposalCard" class="card hidden">
+            <h2>Agent proposal</h2>
+            <div class="row-flex">
+              <span id="routeBadge" class="pill"></span>
+              <span id="confText" class="muted"></span>
+            </div>
+            <p id="recText" class="rec"></p>
+            <h3>Reasoning</h3>
+            <p id="reasoning"></p>
+            <div id="flagsBox" class="hidden">
+              <h3>Safety flags</h3>
+              <ul id="flags"></ul>
+            </div>
+            <div id="missingBox" class="hidden">
+              <h3>Missing information</h3>
+              <p id="missing"></p>
+            </div>
+            <div id="noteWrap" class="hidden">
+              <label for="note">Evidence note (sent to PayPal)</label>
+              <textarea id="note" rows="4" maxlength="1500"></textarea>
+            </div>
+            <div id="msgWrap" class="hidden">
+              <label for="buyerMsg">Message to buyer</label>
+              <textarea id="buyerMsg" rows="4" maxlength="800"></textarea>
+            </div>
+            <p id="statusText" class="status"></p>
+            <p id="traceText" class="muted small"></p>
+            <div class="actions">
+              <button id="approveBtn" class="ok">Approve and submit to PayPal</button>
+              <button id="rejectBtn" class="ghost">Reject</button>
+              <button id="reanalyzeBtn" class="ghost">Re-analyze</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="/app.js"></script>
+</body>
+</html>
